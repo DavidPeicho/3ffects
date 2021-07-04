@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+      "target": "es6",
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "declaration": false,
+      "sourceMap": false,
+      "allowJs": false,
+      "newLine": "LF",
+      "strict": true,
+      "noImplicitReturns": true,
+      "noImplicitThis": true,
+      "noUnusedLocals": true,
+      "noEmitOnError": true,
+      "strictFunctionTypes": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "stripInternal": true,
+      "allowSyntheticDefaultImports": true,
+      "experimentalDecorators": true,
+
+      "paths": {
+        "3ffects": ["../src/"],
+      }
+  },
+
+  "include": [ "./src" ],
+
+  "exclude": [ "node_modules" ]
+}

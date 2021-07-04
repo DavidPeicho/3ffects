@@ -1,0 +1,18 @@
+{
+  "name": "3ffects-examples",
+  "version": "0.0.1",
+  "description": "Examples for the 3ffects library",
+  "main": "index.js",
+  "repository": "git@github.com:DavidPeicho/3ffects.git",
+  "author": "David Peicho <david.peicho@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^4.3.5",
+    "vite": "^2.3.8"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+      "target": "es6",
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "outDir": "./dist",
+      "declaration": true,
+      "sourceMap": false,
+      "allowJs": false,
+      "newLine": "LF",
+      "strict": true,
+      "noImplicitReturns": true,
+      "noImplicitThis": true,
+      "noUnusedLocals": true,
+      "noEmitOnError": true,
+      "strictFunctionTypes": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "stripInternal": true,
+      "allowSyntheticDefaultImports": true,
+      "experimentalDecorators": true
+  },
+
+  "include": [ "./src" ],
+
+  "exclude": [ "node_modules" ]
+}

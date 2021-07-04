@@ -1,0 +1,30 @@
+{
+  "name": "3ffects",
+  "version": "1.0.0",
+  "description": "Set of materials and post-processes for Three.js",
+  "type": "module",
+  "main": "index.js",
+  "repository": "git@github.com:DavidPeicho/3ffects.git",
+  "author": "David Peicho <david.peicho@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/three": "^0.129.2",
+    "@typescript-eslint/eslint-plugin": "^4.28.1",
+    "@typescript-eslint/parser": "^4.28.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "prettier": "^2.3.2",
+    "three": "^0.130.0",
+    "typescript": "^4.3.5"
+  },
+  "scripts": {
+    "build": "npm run copy:to:dist && npm run build:ts",
+    "build:ts": "tsc",
+    "lint": "eslint ./src/**/*.ts",
+    "pretty": "prettier ./src/ --write",
+    "copy:to:dist": "node --experimental-modules ./scripts/copy-to-dist.js"
+  },
+  "peerDependencies": {
+    "three": "^0.130.0"
+  }
+}
