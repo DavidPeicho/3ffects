@@ -24,6 +24,7 @@ renderer.setAnimationLoop((delta: number) => {
 const demo = new SkinDemo(renderer, camera);
 
 function resize() {
+  // @todo: use dpr.
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   
@@ -31,6 +32,7 @@ function resize() {
   camera.updateProjectionMatrix();
   
   renderer.setSize(w, h, false);
+  demo.resize(w, h);
 }
 window.onresize = resize;
 

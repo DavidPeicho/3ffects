@@ -1,12 +1,14 @@
-import { ShaderMaterial } from 'three';
+import { GLSL3, ShaderMaterial } from 'three';
 
-import fragment from '../shaders/skin.frag';
+import fragmentShader from '../shaders/skin.frag';
 
 export class SkinMaterial extends ShaderMaterial {
 
 	public constructor() {
-		super();
-    this.fragmentShader = fragment;
+		super({
+			fragmentShader,
+			glslVersion: GLSL3
+		});
 	}
-	
+
 }

@@ -1,15 +1,16 @@
 export default `
+precision highp float;
+precision highp sampler2D;
 
-#define STANDARD
-#ifdef PHYSICAL
-	#define REFLECTIVITY
-	#define CLEARCOAT
-#endif
+layout(location = 0) out vec4 gDiffuse;
+layout(location = 1) out vec3 gBuffer;
+
 uniform vec3 diffuse;
 uniform vec3 emissive;
 uniform float roughness;
 uniform float metalness;
 uniform float opacity;
+
 #ifdef USE_TRANSMISSION
 	uniform float transmission;
 	uniform float thickness;
@@ -88,13 +89,19 @@ void main() {
 	vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
 	vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
 	#include <transmission_fragment>
-	vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
-	gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-	#include <tonemapping_fragment>
-	#include <encodings_fragment>
-	#include <fog_fragment>
-	#include <premultiplied_alpha_fragment>
-	#include <dithering_fragment>
+	// vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
+	
+	// gl_FragColor = vec4( outgoingLight, diffuseColor.a );
+	gDiffuse = vec4(totalDiffuse, diffuseColor.a);
+	gBuffer = totalSpecular;
+
+	gBuffer = float(gl_SampleID);
+	
+	// #include <tonemapping_fragment>
+	// #include <encodings_fragment>
+	// #include <fog_fragment>
+	// #include <premultiplied_alpha_fragment>
+	// #include <dithering_fragment>
 }
 
 `;

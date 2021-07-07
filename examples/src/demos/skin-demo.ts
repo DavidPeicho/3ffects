@@ -1,4 +1,4 @@
-import { SkinMaterial } from '3ffects';
+import { SkinMaterial, SSSPass } from '3ffects';
 
 import {
   DirectionalLight,
@@ -13,10 +13,10 @@ export class SkinDemo {
   private _scene: Scene;
   private _camera: PerspectiveCamera;
   private _light: DirectionalLight;
-
   private _controls: OrbitControls;
 
   private _material: SkinMaterial;
+  private _sssPass: SSSPass;
 
   constructor(renderer: WebGLRenderer, camera: PerspectiveCamera) {
     this._scene = new Scene();
@@ -35,6 +35,7 @@ export class SkinDemo {
     this._controls.maxDistance = 4.0;
 
     this._material = new SkinMaterial();
+    this._sssPass = new SSSPass();
 
     this._scene.add(this._light);
 
@@ -46,7 +47,11 @@ export class SkinDemo {
   }
 
   render(renderer: WebGLRenderer) {
-    renderer.render(this._scene, this._camera);
+    this._sssPass.render(renderer, this._scene, this._camera);
+  }
+
+  resize(width: number, height: number) {
+    this._sssPass.setSize(width, height);
   }
 
   private async _load(renderer: WebGLRenderer): Promise<void> {
@@ -55,10 +60,10 @@ export class SkinDemo {
     const mesh = await this._loadMesh();
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
-        const material = new MeshStandardMaterial();
-        material.envMap = envTexture;
-        material.needsUpdate = true;
-        (object as Mesh).material = material;
+        // const material = new MeshStandardMaterial();
+        // material.envMap = envTexture;
+        // material.needsUpdate = true;
+        (object as Mesh).material = this._material;
       }
     });
     
