@@ -3,7 +3,9 @@ precision highp float;
 precision highp sampler2D;
 
 layout(location = 0) out vec4 gDiffuse;
-layout(location = 1) out vec3 gBuffer;
+layout(location = 1) out vec4 gBuffer;
+
+#define STANDARD
 
 uniform vec3 diffuse;
 uniform vec3 emissive;
@@ -62,6 +64,7 @@ varying vec3 vViewPosition;
 #include <metalnessmap_pars_fragment>
 #include <logdepthbuf_pars_fragment>
 #include <clipping_planes_pars_fragment>
+
 void main() {
 	#include <clipping_planes_fragment>
 	vec4 diffuseColor = vec4( diffuse, opacity );
@@ -89,14 +92,14 @@ void main() {
 	vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
 	vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
 	#include <transmission_fragment>
-	// vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
-	
-	// gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-	gDiffuse = vec4(totalDiffuse, diffuseColor.a);
-	gBuffer = totalSpecular;
+	vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 
-	gBuffer = float(gl_SampleID);
-	
+	// gl_FragColor = vec4( outgoingLight, diffuseColor.a );
+	gDiffuse = vec4(totalDiffuse.rgb, diffuseColor.a);
+	// gDiffuse = vec4(outgoingLight.rgb, diffuseColor.a);
+	// gDiffuse = vec4(1.0, 0.0, 0.0, 1.0);
+	gBuffer = vec4(totalSpecular, 1.0);
+
 	// #include <tonemapping_fragment>
 	// #include <encodings_fragment>
 	// #include <fog_fragment>

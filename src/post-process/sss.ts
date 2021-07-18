@@ -2,12 +2,15 @@ import {
   Camera,
   DepthTexture,
   FloatType,
+  GLSL3,
+  OrthographicCamera,
+  PerspectiveCamera,
   RawShaderMaterial,
-  RedFormat,
   RGBAFormat,
   RGBFormat,
   Scene,
   UnsignedByteType,
+  Vector2,
   WebGLMultipleRenderTargets,
   WebGLRenderer,
   WebGLRenderTarget
@@ -27,7 +30,8 @@ class SSSCombineMaterial extends RawShaderMaterial {
       fragmentShader: sssCombineFragmentShader,
       uniforms: {
         uDiffuseTexture: { value: null },
-      }
+      },
+      glslVersion: GLSL3
     });
   }
 
@@ -42,7 +46,11 @@ class SSSBlurMaterial extends RawShaderMaterial {
       uniforms: {
         uDepthTexture: { value: null },
         uDiffuseTexture: { value: null },
-      }
+        uBlurDirection: { value: new Vector2() },
+        uCameraNear: { value: 0.1 },
+        uCameraFar: { value: 100 },
+      },
+      glslVersion: GLSL3
     });
   }
 
@@ -70,26 +78,26 @@ export class SSSPass {
     (this._mrt as unknown as WebGLRenderTarget).depthTexture = new DepthTexture(0, 0);
     (this._mrt as unknown as WebGLRenderTarget).depthTexture.type = FloatType;
     this._mrt.texture[0].name = 'diffuse';
-    this._mrt.texture[0].type = UnsignedByteType;
+    this._mrt.texture[0].type = FloatType;
     this._mrt.texture[0].format = RGBAFormat;
-    this._mrt.texture[0].internalFormat = 'RGBA8';
+    this._mrt.texture[0].internalFormat = 'RGBA32F';
 
     // Specular.
     this._mrt.texture[1].name = 'specular';
-    this._mrt.texture[1].type = UnsignedByteType;
-    this._mrt.texture[1].format = RGBFormat;
-    this._mrt.texture[1].internalFormat = 'RGB8';
+    this._mrt.texture[1].type = FloatType;
+    this._mrt.texture[1].format = RGBAFormat;
+    this._mrt.texture[1].internalFormat = 'RGBA32F';
 
     // Blur.
     this._rtBlur0 = new WebGLRenderTarget(1, 1);
     this._rtBlur0.texture.type = UnsignedByteType;
-    this._rtBlur0.texture.format = RGBAFormat;
-    this._rtBlur0.texture.internalFormat = 'RGBA8';
+    this._rtBlur0.texture.format = RGBFormat;
+    this._rtBlur0.texture.internalFormat = 'RGB8';
 
     this._rtBlur1 = new WebGLRenderTarget(1, 1);
     this._rtBlur1.texture.type = UnsignedByteType;
-    this._rtBlur1.texture.format = RGBAFormat;
-    this._rtBlur1.texture.internalFormat = 'RGBA8';
+    this._rtBlur1.texture.format = RGBFormat;
+    this._rtBlur1.texture.internalFormat = 'RGB8';
   }
 
   public setSize(width: number, height: number): void {
@@ -101,7 +109,7 @@ export class SSSPass {
   public render(
     renderer: WebGLRenderer,
     scene: Scene,
-    camera: Camera
+    camera: OrthographicCamera | PerspectiveCamera
   ) {
     // Step 1: populate GBuffer. This should be done on the user sides if he
     // wants to re-use the MRTs.
@@ -110,17 +118,22 @@ export class SSSPass {
 
     // Step 2: Horitonztal blur
     const blurMaterial = this._blurMaterial;
+    blurMaterial.uniforms.uCameraNear.value = camera.near;
+    blurMaterial.uniforms.uCameraFar.value = camera.far;
+
     this._quad.material = blurMaterial;
     blurMaterial.uniforms.uDepthTexture.value = (this._mrt as unknown as WebGLRenderTarget).depthTexture;
+    blurMaterial.uniforms.uBlurDirection.value.set(1.0, 0.0);
 
     blurMaterial.uniforms.uDiffuseTexture.value = this._mrt.texture[0];
+    blurMaterial.uniforms.uBlurDirection.value.set(0.0, 1.0);
     renderer.setRenderTarget(this._rtBlur0);
     this._quad.render(renderer);
 
-    blurMaterial.uniforms.uDiffuseTexture.value = this._rtBlur0;
+    blurMaterial.uniforms.uDiffuseTexture.value = this._rtBlur0.texture;
     renderer.setRenderTarget(this._rtBlur1);
     this._quad.render(renderer);
-    
+
     // Step 3: Combine
     renderer.setRenderTarget(null);
     this._combineMaterial.uniforms.uDiffuseTexture.value = this._rtBlur1.texture;

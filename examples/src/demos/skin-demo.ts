@@ -23,12 +23,14 @@ export class SkinDemo {
     this._camera = camera;
     this._camera.near = 0.05;
     this._camera.far = 5.0;
-    this._camera.position.z = 1.0;
+    this._camera.position.z = 0.5;
     this._camera.updateProjectionMatrix();
     this._camera.updateMatrix();
 
     this._light = new DirectionalLight(0xFFFFFF, 2.0);
-    this._light.target.position.set(-1.0, -1.0, 1.0);
+    // this._light.target.position.set(-1.0, -1.0, 1.0);
+    this._light.target.position.set(-0.0, -1.0, 0.0);
+    this._light.castShadow = true;
 
     this._controls = new OrbitControls(this._camera, renderer.domElement);
     this._controls.minDistance = 0.5;
@@ -56,17 +58,19 @@ export class SkinDemo {
 
   private async _load(renderer: WebGLRenderer): Promise<void> {
     const [ cubeTexture, envTexture ] = await this._loadEnv(renderer);
-    
+
     const mesh = await this._loadMesh();
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
+        object.castShadow = true; //default is false
+        object.receiveShadow = true; //default
         // const material = new MeshStandardMaterial();
         // material.envMap = envTexture;
         // material.needsUpdate = true;
         (object as Mesh).material = this._material;
       }
     });
-    
+
     this._scene.add(mesh);
     this._scene.background = cubeTexture;
     this._scene.environment = envTexture;
@@ -75,7 +79,9 @@ export class SkinDemo {
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
         const material = (object as Mesh).material as MeshStandardMaterial;
+        material.map = textures.albedo;
         material.normalMap = textures.normal;
+        material.envMap = envTexture;
         material.needsUpdate = true;
       }
     });
@@ -97,11 +103,12 @@ export class SkinDemo {
 
   private _loadTextures(): Promise<PerryTextures> {
     return Promise.all([
+      this._loadJPGPNG('lambertian.jpeg'),
       this._loadJPGPNG('normal.png'),
     ]).then((textures) => {
       return {
-        albedo: null,
-        normal: textures[0],
+        albedo: textures[0],
+        normal: textures[1],
         transmission: null
       };
     })
@@ -111,7 +118,7 @@ export class SkinDemo {
     return new Promise((res, rej) => {
       const pmremGenerator = new PMREMGenerator(renderer);
       pmremGenerator.compileCubemapShader();
-  
+
       const hdrTexture = new HDRCubeTextureLoader()
         .setPath('assets/env/pisa/')
         .setDataType(UnsignedByteType)
@@ -140,7 +147,7 @@ export class SkinDemo {
 }
 
 interface PerryTextures {
-  // albedo: Texture;
+  albedo: Texture;
   normal: Texture;
   // transmission: Texture;
 }

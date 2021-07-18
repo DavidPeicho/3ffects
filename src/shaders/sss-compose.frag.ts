@@ -3,11 +3,14 @@ export default `
 precision highp float;
 precision highp sampler2D;
 
-varying vec2 vUv;
+in vec2 vUv;
+
+layout(location = 0) out vec4 fragColor;
+
 uniform sampler2D uDiffuseTexture;
 
 void main() {
-		gl_FragColor = vec4(texture2D(uDiffuseTexture, vUv).rgb, 1.0);
+  fragColor = vec4(texture(uDiffuseTexture, vUv).rgb, 1.0);
 }
 
 `;
