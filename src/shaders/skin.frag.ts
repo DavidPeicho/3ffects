@@ -13,6 +13,10 @@ uniform float roughness;
 uniform float metalness;
 uniform float opacity;
 
+/* SSS uniforms. */
+
+uniform float uSSSStrength;
+
 #ifdef USE_TRANSMISSION
 	uniform float transmission;
 	uniform float thickness;
@@ -95,7 +99,7 @@ void main() {
 	vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 
 	// gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-	gDiffuse = vec4(totalDiffuse.rgb, diffuseColor.a);
+	gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
 	// gDiffuse = vec4(outgoingLight.rgb, diffuseColor.a);
 	// gDiffuse = vec4(1.0, 0.0, 0.0, 1.0);
 	gBuffer = vec4(totalSpecular, 1.0);

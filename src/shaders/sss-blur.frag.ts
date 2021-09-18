@@ -104,10 +104,28 @@ uniform vec2 uBlurDirection;
 uniform float uCameraNear;
 uniform float uCameraFar;
 
+uniform float uSSSWidth;
+
+float perspectiveDepthToViewZ( const in float invClipZ, const in float near, const in float far )
+{
+	return ( near * far ) / ( ( far - near ) * invClipZ - far );
+}
+
 float getLinearDepth(const in float nonLinearDepth)
 {
   float ndc = 2.0 * nonLinearDepth - 1.0;
   return 2.0 * uCameraNear * uCameraFar / (uCameraFar + uCameraNear - ndc * (uCameraFar - uCameraNear));
+}
+
+float getZ(vec2 uv)
+{
+  return abs(perspectiveDepthToViewZ(texture(uDepthTexture, uv).r, uCameraNear, uCameraFar));
+}
+
+float getSSSDepth(vec2 uv)
+{
+  float d = getLinearDepth(texture(uDepthTexture, uv).r);
+  return 1.0 / d;
 }
 
 void main()
@@ -121,7 +139,8 @@ void main()
 
   // Fetch color and linear depth for current pixel:
   // @todo: linearize
-  float depthM = getLinearDepth(texture(uDepthTexture, vUv).r);
+  // float depthM = getSSSDepth(vUv);
+  float depthM = getZ(vUv);
 
   vec4 kernel[11];
   kernel[0] = vec4(0.560479, 0.669086, 0.784728, 0.0);
@@ -138,15 +157,17 @@ void main()
 
   #define SSSS_N_SAMPLES 11
 
-  float sssWidth = 0.1;
+  float sssStrength = colorM.a;
+
   float radiansFovY = 0.78;
   float distanceToProjectionWindow = 1.0 / tan(0.5 * radiansFovY);
-  float scale = distanceToProjectionWindow / depthM;
-  scale /= float(SSSS_N_SAMPLES) * 0.5;
+  float sssScale = distanceToProjectionWindow / float(SSSS_N_SAMPLES) * 0.5;
+  float scale = sssScale / depthM;
   // Calculate the final step to fetch the surrounding pixels:
-  vec2 finalStep = sssWidth * scale * uBlurDirection;
+  vec2 finalStep = uSSSWidth * scale * uBlurDirection;
   // finalStep *= SSSS_STREGTH_SOURCE; // Modulate it using the alpha channel.
   finalStep *= 1.0 / 3.0; // Divide by 3 as the kernels range from -3 to 3.
+  finalStep *= sssStrength;
 
   vec4 colorBlurred = colorM;
   colorBlurred.rgb *= kernel[0].rgb;
@@ -161,8 +182,13 @@ void main()
 
     #ifdef SSSS_FOLLOW_SURFACE
       // If the difference in depth is huge, we lerp color back to "colorM":
-      float depth = getLinearDepth(texture(uDepthTexture, offset).r);
-      float s = clamp(300.0 * distanceToProjectionWindow * sssWidth * abs(depthM - depth), 0.0, 1.0);
+      // float depth = getSSSDepth(offset);
+      float depth = getZ(offset);
+      float s = clamp(
+        12000.0 / 400000.0 * distanceToProjectionWindow * uSSSWidth * abs(depthM - depth),
+        0.0,
+        1.0
+      );
       color.rgb = mix(color.rgb, colorM.rgb, s);
     #endif
 

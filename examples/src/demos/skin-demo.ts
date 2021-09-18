@@ -1,16 +1,20 @@
 import { SkinMaterial, SSSPass } from '3ffects';
+import { GUI } from 'dat.gui';
 
 import {
   DirectionalLight,
-  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader
+  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3
 } from 'three';
+
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { HDRCubeTextureLoader } from 'three/examples/jsm/loaders/HDRCubeTextureLoader';
+import { KTXLoader } from 'three/examples/jsm/loaders/KTXLoader';
 
 export class SkinDemo {
 
   private _scene: Scene;
+  private _perry: Group | Mesh | null;
   private _camera: PerspectiveCamera;
   private _light: DirectionalLight;
   private _controls: OrbitControls;
@@ -18,14 +22,19 @@ export class SkinDemo {
   private _material: SkinMaterial;
   private _sssPass: SSSPass;
 
+  private _guiParameters: GUIParameters;
+
+  private _clock: Clock;
+
   constructor(renderer: WebGLRenderer, camera: PerspectiveCamera) {
     this._scene = new Scene();
     this._camera = camera;
     this._camera.near = 0.05;
     this._camera.far = 5.0;
-    this._camera.position.z = 0.5;
+    this._camera.position.set(0.0, 0.0, 0.5);
     this._camera.updateProjectionMatrix();
     this._camera.updateMatrix();
+    this._perry = null;
 
     this._light = new DirectionalLight(0xFFFFFF, 2.0);
     // this._light.target.position.set(-1.0, -1.0, 1.0);
@@ -33,22 +42,46 @@ export class SkinDemo {
     this._light.castShadow = true;
 
     this._controls = new OrbitControls(this._camera, renderer.domElement);
-    this._controls.minDistance = 0.5;
-    this._controls.maxDistance = 4.0;
+    this._controls.minDistance = 0.15;
+    this._controls.maxDistance = 2.5;
 
     this._material = new SkinMaterial();
     this._sssPass = new SSSPass();
 
     this._scene.add(this._light);
 
+    this._guiParameters = {
+      sssStrength: 1.0,
+      sssWidth: 0.1
+    };
+
     this._load(renderer);
+
+    const loader = new KTXLoader();
+    const cubemap = loader.load('assets/test1.ktx', function ( texture ) {
+
+      console.log(texture);
+
+    } );
+
+    this._clock = new Clock();
+
+    this._buildGUI();
   }
 
   update() {
-
+    if (this._perry !== null) {
+      this._perry.rotateY(this._clock.getDelta());
+      this._perry.updateMatrix();
+    }
   }
 
   render(renderer: WebGLRenderer) {
+    // Reflects GUI parameters onto the material.
+    this._material.sssStrength = this._guiParameters.sssStrength;
+    // @ts-ignore
+    this._sssPass._blurMaterial.uniforms.uSSSWidth.value = this._guiParameters.sssWidth;
+
     this._sssPass.render(renderer, this._scene, this._camera);
   }
 
@@ -71,9 +104,16 @@ export class SkinDemo {
       }
     });
 
+    this._perry = mesh;
+
     this._scene.add(mesh);
     this._scene.background = cubeTexture;
     this._scene.environment = envTexture;
+
+    this._controls.target = new Vector3(0.0, 0.0, 0.0);
+    this._controls.target = new Vector3(0.0, 0.0, 2.0);
+    new Box3().setFromObject(this._perry).getCenter(this._controls.target);
+    this._controls.update();
 
     const textures = await this._loadTextures();
     mesh.traverse((object: Object3D) => {
@@ -144,10 +184,24 @@ export class SkinDemo {
     });
   }
 
+  private _buildGUI(): void {
+    const gui = new GUI();
+
+    gui.add(this._guiParameters, 'sssStrength', 0.0, 1.0, 0.05);
+    gui.add(this._guiParameters, 'sssWidth', 0.0, 0.25, 0.01);
+
+    gui.open();
+  }
+
 }
 
 interface PerryTextures {
   albedo: Texture;
   normal: Texture;
   // transmission: Texture;
+}
+
+interface GUIParameters {
+  sssStrength: number;
+  sssWidth: number;
 }

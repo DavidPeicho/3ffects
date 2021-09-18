@@ -47,6 +47,9 @@ class SSSBlurMaterial extends RawShaderMaterial {
         uDepthTexture: { value: null },
         uDiffuseTexture: { value: null },
         uBlurDirection: { value: new Vector2() },
+
+        uSSSWidth: { value: 0.1 },
+
         uCameraNear: { value: 0.1 },
         uCameraFar: { value: 100 },
       },

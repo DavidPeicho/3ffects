@@ -14,6 +14,7 @@ export class SkinMaterial extends ShaderMaterial {
           map: { value: null },
           diffuse: { value: new Color(0xFFFFFF) },
           envMap: { value: null },
+          uSSSStrength: { value: 1.0 },
 
           // @todo: better handle that.
           envMapIntensity: { value: 2.0 },
@@ -72,6 +73,14 @@ export class SkinMaterial extends ShaderMaterial {
 
   public set envMap(e: Texture) {
     this.uniforms.envMap.value = e;
+  }
+
+  public set sssStrength(s: number) {
+    this.uniforms.uSSSStrength.value = s;
+  }
+
+  public get sssStrength(): number {
+    return this.uniforms.uSSSStrength.value;
   }
 
 }
