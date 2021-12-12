@@ -69,6 +69,17 @@ varying vec3 vViewPosition;
 #include <logdepthbuf_pars_fragment>
 #include <clipping_planes_pars_fragment>
 
+vec3
+TransmissionMap(float s)
+{
+ return vec3(0.233, 0.455, 0.649) ∗ exp(-s*s/0.0064) +
+ vec3(0.1, 0.336, 0.344) ∗ exp(-s*s/0.0484) +
+ vec3(0.118, 0.198, 0.0) ∗ exp(-s*s/0.187) +
+ vec3(0.113, 0.007, 0.007) ∗ exp(-s*s/0.567) +
+ vec3(0.358, 0.004, 0.0) ∗ exp(-s*s/1.99) +
+ vec3(0.078, 0.0, 0.0) ∗ exp(-s*s/7.41);
+}
+
 void main() {
 	#include <clipping_planes_fragment>
 	vec4 diffuseColor = vec4( diffuse, opacity );

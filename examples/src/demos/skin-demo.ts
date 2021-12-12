@@ -67,11 +67,19 @@ export class SkinDemo {
     this._clock = new Clock();
 
     this._buildGUI();
+
+    // window.onclick = () => {
+    //   const can = renderer.getContext().canvas;
+    //   renderer.render(this._scene, this._camera);
+    //   var dataURL = can.toDataURL("image/png");
+    //   var newTab = window.open('about:blank','image from canvas')!;
+    //   newTab.document.write("<img src='" + dataURL + "' alt='from canvas'/>");
+    // }
   }
 
   update() {
     if (this._perry !== null) {
-      this._perry.rotateY(this._clock.getDelta());
+      // this._perry.rotateY(this._clock.getDelta());
       this._perry.updateMatrix();
     }
   }
@@ -81,8 +89,10 @@ export class SkinDemo {
     this._material.sssStrength = this._guiParameters.sssStrength;
     // @ts-ignore
     this._sssPass._blurMaterial.uniforms.uSSSWidth.value = this._guiParameters.sssWidth;
-
     this._sssPass.render(renderer, this._scene, this._camera);
+
+    // renderer.setClearAlpha(0.0);
+    // renderer.render(this._scene, this._camera);
   }
 
   resize(width: number, height: number) {
@@ -95,11 +105,13 @@ export class SkinDemo {
     const mesh = await this._loadMesh();
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
-        object.castShadow = true; //default is false
-        object.receiveShadow = true; //default
+        // object.castShadow = true; //default is false
+        // object.receiveShadow = true; //default
         // const material = new MeshStandardMaterial();
         // material.envMap = envTexture;
         // material.needsUpdate = true;
+        // material.wireframe = true;
+        // (object as Mesh).material = material;
         (object as Mesh).material = this._material;
       }
     });
@@ -107,7 +119,7 @@ export class SkinDemo {
     this._perry = mesh;
 
     this._scene.add(mesh);
-    this._scene.background = cubeTexture;
+    // this._scene.background = cubeTexture;
     this._scene.environment = envTexture;
 
     this._controls.target = new Vector3(0.0, 0.0, 0.0);
