@@ -72,12 +72,14 @@ varying vec3 vViewPosition;
 vec3
 TransmissionMap(float s)
 {
- return vec3(0.233, 0.455, 0.649) ∗ exp(-s*s/0.0064) +
- vec3(0.1, 0.336, 0.344) ∗ exp(-s*s/0.0484) +
- vec3(0.118, 0.198, 0.0) ∗ exp(-s*s/0.187) +
- vec3(0.113, 0.007, 0.007) ∗ exp(-s*s/0.567) +
- vec3(0.358, 0.004, 0.0) ∗ exp(-s*s/1.99) +
- vec3(0.078, 0.0, 0.0) ∗ exp(-s*s/7.41);
+ return (
+	vec3(0.233, 0.455, 0.649) * exp(-s*s / 0.0064) +
+	vec3(0.1, 0.336, 0.344) * exp(-s*s/0.0484) +
+	vec3(0.118, 0.198, 0.0) * exp(-s*s/0.187) +
+	vec3(0.113, 0.007, 0.007) * exp(-s*s/0.567) +
+	vec3(0.358, 0.004, 0.0) * exp(-s*s/1.99) +
+	vec3(0.078, 0.0, 0.0) * exp(-s*s/7.41)
+ );
 }
 
 void main() {
@@ -107,12 +109,25 @@ void main() {
 	vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
 	vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
 	#include <transmission_fragment>
-	vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
+	// vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 
-	// gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-	gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
-	// gDiffuse = vec4(outgoingLight.rgb, diffuseColor.a);
-	// gDiffuse = vec4(1.0, 0.0, 0.0, 1.0);
+	#ifdef USE_SHADOWMAP
+		#if NUM_DIR_LIGHT_SHADOWS > 0
+
+			vec4 shadowUv = vDirectionalShadowCoord[0];
+			shadowUv.xyz /= shadowUv.w;
+			// shadowUv.z += shadowBias;
+
+			float depthShadow = unpackRGBAToDepth(
+				texture2D(directionalShadowMap[0], shadowUv.xy)
+			);
+			gDiffuse = vec4(vec3(depthShadow), uSSSStrength);
+			// directionalShadowMap[0];
+
+		#endif // NUM_DIR_LIGHT_SHADOWS > 0
+	#else
+		gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
+	#endif // USE_SHADOWMAP
 	gBuffer = vec4(totalSpecular, 1.0);
 
 	// #include <tonemapping_fragment>

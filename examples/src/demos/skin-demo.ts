@@ -27,6 +27,8 @@ export class SkinDemo {
   private _clock: Clock;
 
   constructor(renderer: WebGLRenderer, camera: PerspectiveCamera) {
+    renderer.shadowMap.enabled = true ;
+
     this._scene = new Scene();
     this._camera = camera;
     this._camera.near = 0.05;
@@ -37,6 +39,7 @@ export class SkinDemo {
     this._perry = null;
 
     this._light = new DirectionalLight(0xFFFFFF, 2.0);
+    this._light.castShadow = true;
     // this._light.target.position.set(-1.0, -1.0, 1.0);
     this._light.target.position.set(-0.0, -1.0, 0.0);
     this._light.castShadow = true;
@@ -58,11 +61,6 @@ export class SkinDemo {
     this._load(renderer);
 
     const loader = new KTXLoader();
-    const cubemap = loader.load('assets/test1.ktx', function ( texture ) {
-
-      console.log(texture);
-
-    } );
 
     this._clock = new Clock();
 
@@ -113,6 +111,7 @@ export class SkinDemo {
         // material.wireframe = true;
         // (object as Mesh).material = material;
         (object as Mesh).material = this._material;
+        mesh.receiveShadow = true;
       }
     });
 
