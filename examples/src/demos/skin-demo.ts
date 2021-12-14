@@ -3,7 +3,7 @@ import { GUI } from 'dat.gui';
 
 import {
   DirectionalLight,
-  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3
+  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3, CameraHelper, PlaneGeometry, EventDispatcher, MeshLambertMaterial
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -31,36 +31,48 @@ export class SkinDemo {
 
     this._scene = new Scene();
     this._camera = camera;
-    this._camera.near = 0.05;
-    this._camera.far = 5.0;
-    this._camera.position.set(0.0, 0.0, 0.5);
+    this._camera.near = 0.5;
+    this._camera.far = 50.0;
+    this._camera.position.set(0.0, 0.0, 5.0);
     this._camera.updateProjectionMatrix();
     this._camera.updateMatrix();
     this._perry = null;
 
     this._light = new DirectionalLight(0xFFFFFF, 2.0);
     this._light.castShadow = true;
-    // this._light.target.position.set(-1.0, -1.0, 1.0);
-    this._light.target.position.set(-0.0, -1.0, 0.0);
-    this._light.castShadow = true;
+    this._light.shadow.camera.near = - 10.0;
+    this._light.shadow.camera.far = 10.0;
+    // this._light.shadow.normalBias = -0.001;
+    this._light.shadow.bias = -0.005;
+    this._light.shadow.mapSize.set(1024, 1024);
+
+    this._light.shadow.camera.updateProjectionMatrix();
+    this._light.target.position.set(0.0, 0.0, -1.0);
+    this._light.add(this._light.target);
+
+    const helper = new CameraHelper(this._light.shadow.camera );
+    this._scene.add( helper );
 
     this._controls = new OrbitControls(this._camera, renderer.domElement);
-    this._controls.minDistance = 0.15;
-    this._controls.maxDistance = 2.5;
 
     this._material = new SkinMaterial();
     this._sssPass = new SSSPass();
 
     this._scene.add(this._light);
 
+    const plane = new Mesh(new PlaneGeometry(), new MeshLambertMaterial());
+    plane.position.set(0, 0, -5);
+    plane.scale.set(5, 5, 5);
+    plane.receiveShadow = true;
+    this._scene.add(plane);
+
     this._guiParameters = {
       sssStrength: 1.0,
-      sssWidth: 0.1
+      sssWidth: 0.1,
+      zPos: 0.0
     };
 
     this._load(renderer);
-
-    const loader = new KTXLoader();
 
     this._clock = new Clock();
 
@@ -73,12 +85,12 @@ export class SkinDemo {
     //   var newTab = window.open('about:blank','image from canvas')!;
     //   newTab.document.write("<img src='" + dataURL + "' alt='from canvas'/>");
     // }
+
   }
 
   update() {
-    if (this._perry !== null) {
-      // this._perry.rotateY(this._clock.getDelta());
-      this._perry.updateMatrix();
+    if (this._perry) {
+      this._perry.position.z = this._guiParameters.zPos;
     }
   }
 
@@ -103,15 +115,10 @@ export class SkinDemo {
     const mesh = await this._loadMesh();
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
-        // object.castShadow = true; //default is false
-        // object.receiveShadow = true; //default
-        // const material = new MeshStandardMaterial();
-        // material.envMap = envTexture;
-        // material.needsUpdate = true;
-        // material.wireframe = true;
-        // (object as Mesh).material = material;
         (object as Mesh).material = this._material;
-        mesh.receiveShadow = true;
+        object.scale.set(10.0, 10.0, 10.0);
+        object.receiveShadow = true;
+        object.castShadow = true;
       }
     });
 
@@ -122,8 +129,10 @@ export class SkinDemo {
     this._scene.environment = envTexture;
 
     this._controls.target = new Vector3(0.0, 0.0, 0.0);
-    this._controls.target = new Vector3(0.0, 0.0, 2.0);
+    this._controls.target = new Vector3(0.0, 0.0, 5.0);
     new Box3().setFromObject(this._perry).getCenter(this._controls.target);
+    
+    this._controls.reset();
     this._controls.update();
 
     const textures = await this._loadTextures();
@@ -200,6 +209,7 @@ export class SkinDemo {
 
     gui.add(this._guiParameters, 'sssStrength', 0.0, 1.0, 0.05);
     gui.add(this._guiParameters, 'sssWidth', 0.0, 0.25, 0.01);
+    gui.add(this._guiParameters, 'zPos', -5.0, 5, 0.1);
 
     gui.open();
   }
@@ -215,4 +225,5 @@ interface PerryTextures {
 interface GUIParameters {
   sssStrength: number;
   sssWidth: number;
+  zPos: number;
 }

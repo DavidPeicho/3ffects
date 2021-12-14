@@ -114,20 +114,25 @@ void main() {
 	#ifdef USE_SHADOWMAP
 		#if NUM_DIR_LIGHT_SHADOWS > 0
 
+			directionalLightShadow = directionalLightShadows[0];
+
 			vec4 shadowUv = vDirectionalShadowCoord[0];
 			shadowUv.xyz /= shadowUv.w;
-			// shadowUv.z += shadowBias;
+			shadowUv.z += directionalLightShadow.shadowBias;
 
 			float depthShadow = unpackRGBAToDepth(
 				texture2D(directionalShadowMap[0], shadowUv.xy)
 			);
-			gDiffuse = vec4(vec3(depthShadow), uSSSStrength);
-			// directionalShadowMap[0];
+
+			// gDiffuse = vec4(vec3(depthShadow), uSSSStrength);
+			gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
+			// gDiffuse = vec4(vec3(vViewPosition.z), uSSSStrength);
 
 		#endif // NUM_DIR_LIGHT_SHADOWS > 0
 	#else
 		gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
 	#endif // USE_SHADOWMAP
+		// gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
 	gBuffer = vec4(totalSpecular, 1.0);
 
 	// #include <tonemapping_fragment>
