@@ -42,8 +42,8 @@ export class SkinDemo {
     this._light.castShadow = true;
     this._light.shadow.camera.near = - 10.0;
     this._light.shadow.camera.far = 10.0;
-    // this._light.shadow.normalBias = -0.001;
-    this._light.shadow.bias = -0.005;
+    this._light.shadow.normalBias = 0.001;
+    this._light.shadow.bias = 0.00025;
     this._light.shadow.mapSize.set(1024, 1024);
 
     this._light.shadow.camera.updateProjectionMatrix();

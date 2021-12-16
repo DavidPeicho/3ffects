@@ -1,14 +1,17 @@
-import { Color, GLSL3, Matrix3, ObjectSpaceNormalMap, ShaderLib, ShaderMaterial, TangentSpaceNormalMap, Texture, UniformsLib, UniformsUtils } from 'three';
+import { Color, DoubleSide, GLSL3, Matrix3, ObjectSpaceNormalMap, ShaderLib, ShaderMaterial, TangentSpaceNormalMap, Texture, UniformsLib, UniformsUtils } from 'three';
 
-import fragmentShader from '../shaders/skin.frag';
+import fragmentShader from '../shaders/skin/skin.frag';
+import vertexShader from '../shaders/skin/skin.vert';
 
 export class SkinMaterial extends ShaderMaterial {
 
 	public constructor() {
 		super({
 			fragmentShader,
-      vertexShader: ShaderLib.physical.vertexShader,
+      vertexShader,
 			glslVersion: GLSL3,
+
+      side: DoubleSide,
 
       uniforms: UniformsUtils.merge([{
           map: { value: null },
