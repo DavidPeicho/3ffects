@@ -3,13 +3,12 @@ import { GUI } from 'dat.gui';
 
 import {
   DirectionalLight,
-  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3, CameraHelper, PlaneGeometry, EventDispatcher, MeshLambertMaterial, ShadowMapType, BasicShadowMap, FrontSide, DoubleSide
+  Mesh, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3, CameraHelper, PlaneGeometry, EventDispatcher, MeshLambertMaterial, ShadowMapType, BasicShadowMap, FrontSide, DoubleSide
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { HDRCubeTextureLoader } from 'three/examples/jsm/loaders/HDRCubeTextureLoader';
-import { KTXLoader } from 'three/examples/jsm/loaders/KTXLoader';
 
 export class SkinDemo {
 
@@ -26,11 +25,8 @@ export class SkinDemo {
 
   private _guiParameters: GUIParameters;
 
-  private _clock: Clock;
-
   constructor(renderer: WebGLRenderer, camera: PerspectiveCamera) {
     renderer.shadowMap.enabled = true ;
-    // renderer.shadowMap.type = PC;
 
     this._renderer = renderer;
 
@@ -47,8 +43,8 @@ export class SkinDemo {
     this._light.castShadow = true;
     this._light.shadow.camera.near = - 10.0;
     this._light.shadow.camera.far = 10.0;
-    this._light.shadow.normalBias = -0.003;
-    this._light.shadow.bias = -0.0035;
+    this._light.shadow.bias = -0.01;
+    this._light.shadow.normalBias = -0.02;
     this._light.shadow.mapSize.set(1024, 1024);
 
     this._light.shadow.camera.updateProjectionMatrix();
@@ -78,15 +74,16 @@ export class SkinDemo {
       zPos: 0.0,
       bias: this._light.shadow.bias,
       normalbias: this._light.shadow.normalBias,
-      transluency: 0.5
+      transluency: 0.5,
+
+      ao: true,
+
+      envIntensity: 1.0,
+      lightIntensity: this._light.intensity
     };
 
     this._load(renderer);
-
-    this._clock = new Clock();
-
     this._buildGUI();
-
   }
 
   update() {
@@ -103,6 +100,9 @@ export class SkinDemo {
     this._material.sssWidth = this._guiParameters.sssWidth;
     this._material.transluency = this._guiParameters.transluency;
     this._material.sssStrength = this._guiParameters.sssStrength;
+    this._material.envMapIntensity = this._guiParameters.envIntensity;
+
+    this._light.intensity = this._guiParameters.lightIntensity;
 
     // @ts-ignore
     this._sssPass._blurMaterial.uniforms.uSSSWidth.value = this._guiParameters.sssWidth;
@@ -126,6 +126,10 @@ export class SkinDemo {
         object.scale.set(10.0, 10.0, 10.0);
         object.receiveShadow = true;
         object.castShadow = true;
+
+        const g = (object as Mesh).geometry;
+        // Required for ao map...
+        g.attributes.uv2 = g.attributes.uv;
       }
     });
 
@@ -138,16 +142,18 @@ export class SkinDemo {
     this._controls.target = new Vector3(0.0, 0.0, 0.0);
     this._controls.target = new Vector3(0.0, 0.0, 5.0);
     new Box3().setFromObject(this._perry).getCenter(this._controls.target);
-    
+
     this._controls.reset();
     this._controls.update();
 
     const textures = await this._loadTextures();
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
-        const material = (object as Mesh).material as MeshStandardMaterial;
+        const material = (object as Mesh).material as SkinMaterial;
         material.map = textures.albedo;
         material.normalMap = textures.normal;
+        material.transluencyMap = textures.transmission;
+        material.aoMap = textures.occlusion;
         material.envMap = envTexture;
         material.needsUpdate = true;
       }
@@ -172,11 +178,14 @@ export class SkinDemo {
     return Promise.all([
       this._loadJPGPNG('lambertian.jpeg'),
       this._loadJPGPNG('normal.png'),
+      this._loadJPGPNG('transmission.jpg'),
+      this._loadJPGPNG('out_occlusion.png')
     ]).then((textures) => {
       return {
         albedo: textures[0],
         normal: textures[1],
-        transmission: null
+        transmission: textures[2],
+        occlusion: textures[3],
       };
     })
   }
@@ -219,8 +228,13 @@ export class SkinDemo {
     gui.add(this._guiParameters, 'transluency', 0.0, 1.0, 0.05);
 
     gui.add(this._guiParameters, 'zPos', -10.0, 10, 0.1);
-    gui.add(this._guiParameters, 'bias', -1.0, 1, 0.001);
-    gui.add(this._guiParameters, 'normalbias', -1.0, 1, 0.001);
+    gui.add(this._guiParameters, 'bias', -0.2, 0.2, 0.001);
+    gui.add(this._guiParameters, 'normalbias', -0.2, 0.2, 0.001);
+
+    gui.add(this._guiParameters, 'ao');
+
+    gui.add(this._guiParameters, 'envIntensity', 0.0, 2.0, 0.25);
+    gui.add(this._guiParameters, 'lightIntensity', 0.0, 5.0, 0.25);
 
     gui.open();
   }
@@ -230,7 +244,8 @@ export class SkinDemo {
 interface PerryTextures {
   albedo: Texture;
   normal: Texture;
-  // transmission: Texture;
+  transmission: Texture;
+  occlusion: Texture;
 }
 
 interface GUIParameters {
@@ -238,7 +253,12 @@ interface GUIParameters {
   sssWidth: number;
   transluency: number;
 
+  ao: boolean;
+
   zPos: number;
   bias: number;
   normalbias: number;
+
+  envIntensity: number;
+  lightIntensity: number;
 }

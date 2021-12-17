@@ -19,6 +19,10 @@ uniform float uSSSStrength;
 uniform float uSSSSWidth;
 uniform float uSSSSTransluency;
 
+#ifdef USE_TRANSLUENCY_MAP
+    uniform sampler2D uTransluencyMap;
+#endif // USE_TRANSLUENCY_MAP
+
 #ifdef USE_TRANSMISSION
     uniform float transmission;
     uniform float thickness;
@@ -148,7 +152,7 @@ SSSSTransmittance(
     /**
         * Calculate the scale of the effect.
         */
-    float scale = 8.25 * (1.0 - translucency) / sssWidth;
+    float scale = max(8.25 * (1.0 - translucency) / sssWidth, 0.0001);
 
     /**
         * First we shrink the position inwards the surface to avoid artifacts:
@@ -277,7 +281,6 @@ float getShadowDepth(
     return 100000.0;
 }
 
-
 void main() {
     #include <clipping_planes_fragment>
     vec4 diffuseColor = vec4( diffuse, opacity );
@@ -300,50 +303,58 @@ void main() {
     #include <lights_fragment_begin>
     #include <lights_fragment_maps>
     #include <lights_fragment_end>
-    // modulation
-    #include <aomap_fragment>
-    vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
-    vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
-    #include <transmission_fragment>
-    // vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
-
-    vec3 diffuse = totalDiffuse.rgb;
 
     #ifdef USE_SHADOWMAP
-        #if NUM_DIR_LIGHT_SHADOWS > 0
 
-            directionalLightShadow = directionalLightShadows[0];
+        #if ( NUM_DIR_LIGHTS > 0 )
 
-            float depthShadow = getShadowDepth(
-                directionalShadowMap[0],
-                directionalLightShadow.shadowMapSize,
-                directionalLightShadow.shadowBias,
-                directionalLightShadow.shadowRadius,
-                vDirectionalShadowCoord[0]
-            );
-            // depthShadow = (depthShadow - 0.5) * 2.0;
+            #if NUM_DIR_LIGHT_SHADOWS > 0
 
-            // vec4 posLightSpace = directionalShadowMatrix[0] * vec4(vWorldPosition, 1.0);
-            // posLightSpace.z /= posLightSpace.w;
+                directionalLight = directionalLights[ 0 ];
+                directionalLightShadow = directionalLightShadows[0];
+	            vec3 diff = directionalLight.color * BRDF_Lambert( material.diffuseColor );
 
-            vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
-            vec3 lightWorld = inverseTransformDirection(directionalLights[ 0 ].direction, viewMatrix);
-            diffuse += SSSSTransmittance(
-                uSSSSTransluency,
-                uSSSSWidth,
-                vWorldPosition,
-                worldNormal,
-                lightWorld,
-                depthShadow,
-                vDirectionalShadowCoord[0].z
-            );
+                float depthShadow = getShadowDepth(
+                    directionalShadowMap[0],
+                    directionalLightShadow.shadowMapSize,
+                    directionalLightShadow.shadowBias,
+                    directionalLightShadow.shadowRadius,
+                    vDirectionalShadowCoord[0]
+                );
 
+                float transluency = uSSSSTransluency;
+                #ifdef USE_TRANSLUENCY_MAP
+                    transluency *= texture2D(uTransluencyMap, vUv).r;
+                #endif // USE_TRANSLUENCY_MAP
 
-        #endif // NUM_DIR_LIGHT_SHADOWS > 0
+                vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
+                vec3 lightWorld = inverseTransformDirection(directionalLights[ 0 ].direction, viewMatrix);
+                reflectedLight.directDiffuse += diff * SSSSTransmittance(
+                    transluency,
+                    uSSSSWidth,
+                    vWorldPosition,
+                    worldNormal,
+                    lightWorld,
+                    depthShadow,
+                    vDirectionalShadowCoord[0].z / vDirectionalShadowCoord[0].w
+                );
+
+            #endif // NUM_DIR_LIGHT_SHADOWS > 0
+
+        #endif // NUM_DIR_LIGHTS > 0
+
     #endif // USE_SHADOWMAP
-        // gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
 
-    gDiffuse = vec4(diffuse, uSSSStrength);
+    // vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
+    // gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
+
+    // modulation
+    #include <aomap_fragment>
+
+    vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
+    vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
+
+    gDiffuse = vec4(totalDiffuse, uSSSStrength);
     gBuffer = vec4(totalSpecular, 1.0);
 
     // #include <tonemapping_fragment>

@@ -1,4 +1,4 @@
-import { Color, DoubleSide, GLSL3, Matrix3, ObjectSpaceNormalMap, ShaderLib, ShaderMaterial, TangentSpaceNormalMap, Texture, UniformsLib, UniformsUtils } from 'three';
+import { Color, DoubleSide, GLSL3, ObjectSpaceNormalMap, ShaderMaterial, TangentSpaceNormalMap, Texture, UniformsLib, UniformsUtils } from 'three';
 
 import fragmentShader from '../shaders/skin/skin.frag';
 import vertexShader from '../shaders/skin/skin.vert';
@@ -18,12 +18,16 @@ export class SkinMaterial extends ShaderMaterial {
           diffuse: { value: new Color(0xFFFFFF) },
           envMap: { value: null },
 
+          // @todo: use uniform include
+          aoMap: { value: null },
+          aoMapIntensity: { value: 1.0 },
+
           uSSSSWidth: { value: 1.0 },
           uSSSStrength: { value: 1.0 },
 
           uSSSSTransluency: { value: 0.5 },
+          uTransluencyMap: { value: null },
 
-          // @todo: better handle that.
           envMapIntensity: { value: 2.0 },
           metalness: { value: 0.0 },
           roughness: { value: 1.0 },
@@ -46,6 +50,19 @@ export class SkinMaterial extends ShaderMaterial {
 
   public set map(map: Texture) {
     this.uniforms.map.value = map;
+  }
+
+  public get aoMap(): Texture {
+    return this.uniforms.aoMap.value;
+  }
+
+  public set aoMap(map: Texture) {
+    this.uniforms.aoMap.value = map;
+    // if (!map) {
+    //   delete this.defines.USE_AOMAP;
+    // } else {
+    //   this.defines.USE_AOMAP = true;
+    // }
   }
 
   public get normalMap(): Texture {
@@ -80,6 +97,27 @@ export class SkinMaterial extends ShaderMaterial {
 
   public set envMap(e: Texture) {
     this.uniforms.envMap.value = e;
+  }
+
+  public get envMapIntensity(): number {
+    return this.uniforms.envMapIntensity.value;
+  }
+
+  public set envMapIntensity(e: number) {
+    this.uniforms.envMapIntensity.value = e;
+  }
+
+  public set transluencyMap(e: Texture) {
+    this.uniforms.uTransluencyMap.value = e;
+    if (!e) {
+      delete this.defines.USE_TRANSLUENCY_MAP;
+    } else {
+      this.defines.USE_TRANSLUENCY_MAP = true;
+    }
+  }
+
+  public get transluencyMap(): Texture {
+    return this.uniforms.uTransluencyMap.value;
   }
 
   public set transluency(s: number) {
