@@ -16,6 +16,8 @@ uniform float opacity;
 /* SSS uniforms. */
 
 uniform float uSSSStrength;
+uniform float uSSSSWidth;
+uniform float uSSSSTransluency;
 
 #ifdef USE_TRANSMISSION
     uniform float transmission;
@@ -93,10 +95,102 @@ TransmissionMap(float s)
  );
 }
 
+vec3
+SSSSTransmittance(
+    /**
+        * This parameter allows to control the transmittance effect. Its range
+        * should be 0..1. Higher values translate to a stronger effect.
+        */
+    float translucency,
+
+    /**
+        * This parameter should be the same as the 'SSSSBlurPS' one. See below
+        * for more details.
+        */
+    float sssWidth,
+
+    /**
+        * Position in world space.
+        */
+    vec3 worldPosition,
+
+    /**
+        * Normal in world space.
+        */
+    vec3 worldNormal,
+
+    /**
+        * Light vector: lightWorldPosition - worldPosition.
+        */
+    vec3 light,
+
+    // 0...1
+    float shadowDistance,
+
+    // 0...1
+    float lightToPointDistance
+
+    /**
+        * Linear 0..1 shadow map.
+        */
+    // texture2D shadowMap,
+
+    /**
+        * Regular world to light space matrix.
+        */
+    // mat4 lightViewProjection,
+
+    /**
+        * Far plane distance used in the light projection matrix.
+        */
+    // float lightFarPlane
+) {
+    /**
+        * Calculate the scale of the effect.
+        */
+    float scale = 8.25 * (1.0 - translucency) / sssWidth;
+
+    /**
+        * First we shrink the position inwards the surface to avoid artifacts:
+        * (Note that this can be done once for all the lights)
+        */
+    vec4 shrinkedPos = vec4(worldPosition - 0.005 * worldNormal, 1.0);
+
+    /**
+        * Now we calculate the thickness from the light point of view:
+        */
+    // float4 shadowPosition = SSSSMul(shrinkedPos, lightViewProjection);
+    // float d1 = SSSSSample(shadowMap, shadowPosition.xy / shadowPosition.w).r; // 'd1' has a range of 0..1
+    // float d2 = shadowPosition.z; // 'd2' has a range of 0..'lightFarPlane'
+    // d1 *= lightFarPlane; // So we scale 'd1' accordingly:
+    // float d = scale * abs(d1 - d2);
+
+    float d = scale * abs(shadowDistance - lightToPointDistance);
+
+    /**
+        * Armed with the thickness, we can now calculate the color by means of the
+        * precalculated transmittance profile.
+        * (It can be precomputed into a texture, for maximum performance):
+        */
+    float dd = -d * d;
+    vec3 profile = vec3(0.233, 0.455, 0.649) * exp(dd / 0.0064) +
+                        vec3(0.1,   0.336, 0.344) * exp(dd / 0.0484) +
+                        vec3(0.118, 0.198, 0.0)   * exp(dd / 0.187)  +
+                        vec3(0.113, 0.007, 0.007) * exp(dd / 0.567)  +
+                        vec3(0.358, 0.004, 0.0)   * exp(dd / 1.99)   +
+                        vec3(0.078, 0.0,   0.0)   * exp(dd / 7.41);
+
+    /** 
+        * Using the profile, we finally approximate the transmitted lighting from
+        * the back of the object:
+        */
+    return profile * saturate(0.3 + dot(light, -worldNormal));
+}
+
 float
 fetchShadowDepth(sampler2D depths, vec2 uv)
 {
-    return unpackRGBAToDepth(texture2D(depths, uv));
+    return unpackRGBAToDepth(texture2D(depths, uv).rgba);
 }
 
 float getShadowDepth(
@@ -108,8 +202,6 @@ float getShadowDepth(
 ) {
     shadowCoord.xyz /= shadowCoord.w;
     shadowCoord.z += shadowBias;
-    // if ( something && something ) breaks ATI OpenGL shader compiler
-    // if ( all( something, something ) ) using this instead
     bvec4 inFrustumVec = bvec4 ( shadowCoord.x >= 0.0, shadowCoord.x <= 1.0, shadowCoord.y >= 0.0, shadowCoord.y <= 1.0 );
     bool inFrustum = all( inFrustumVec );
     bvec2 frustumTestVec = bvec2( inFrustum, shadowCoord.z <= 1.0 );
@@ -179,7 +271,7 @@ float getShadowDepth(
     #elif defined( SHADOWMAP_TYPE_VSM )
         shadow = VSMShadow( shadowMap, shadowCoord.xy, shadowCoord.z );
     #else // no percentage-closer filtering:
-        shadow = texture2DCompare( shadowMap, shadowCoord.xy, shadowCoord.z );
+        return fetchShadowDepth( shadowMap, shadowCoord.xy );
     #endif
     }
     return 100000.0;
@@ -215,30 +307,43 @@ void main() {
     #include <transmission_fragment>
     // vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 
+    vec3 diffuse = totalDiffuse.rgb;
+
     #ifdef USE_SHADOWMAP
         #if NUM_DIR_LIGHT_SHADOWS > 0
 
             directionalLightShadow = directionalLightShadows[0];
 
-            float depthShadow = getShadow(
+            float depthShadow = getShadowDepth(
                 directionalShadowMap[0],
                 directionalLightShadow.shadowMapSize,
                 directionalLightShadow.shadowBias,
                 directionalLightShadow.shadowRadius,
                 vDirectionalShadowCoord[0]
             );
+            // depthShadow = (depthShadow - 0.5) * 2.0;
 
-            vec4 posLightSpace = directionalShadowMatrix[0] * vec4(vWorldPosition, 1.0);
-            posLightSpace.z /= posLightSpace.w;
+            // vec4 posLightSpace = directionalShadowMatrix[0] * vec4(vWorldPosition, 1.0);
+            // posLightSpace.z /= posLightSpace.w;
 
-            // gDiffuse = vec4(vec3(depthShadow), uSSSStrength);
-            gDiffuse = vec4(vec3(posLightSpace.z), uSSSStrength);
+            vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
+            vec3 lightWorld = inverseTransformDirection(directionalLights[ 0 ].direction, viewMatrix);
+            diffuse += SSSSTransmittance(
+                uSSSSTransluency,
+                uSSSSWidth,
+                vWorldPosition,
+                worldNormal,
+                lightWorld,
+                depthShadow,
+                vDirectionalShadowCoord[0].z
+            );
+
 
         #endif // NUM_DIR_LIGHT_SHADOWS > 0
     #endif // USE_SHADOWMAP
         // gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
 
-    // gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
+    gDiffuse = vec4(diffuse, uSSSStrength);
     gBuffer = vec4(totalSpecular, 1.0);
 
     // #include <tonemapping_fragment>

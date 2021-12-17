@@ -3,7 +3,7 @@ import { GUI } from 'dat.gui';
 
 import {
   DirectionalLight,
-  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3, CameraHelper, PlaneGeometry, EventDispatcher, MeshLambertMaterial
+  Mesh, MeshStandardMaterial, Object3D, PerspectiveCamera, Scene, WebGLRenderer, UnsignedByteType, PMREMGenerator, LinearFilter, Group, Texture, TextureLoader, Clock, Vector3, Box3, CameraHelper, PlaneGeometry, EventDispatcher, MeshLambertMaterial, ShadowMapType, BasicShadowMap, FrontSide, DoubleSide
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -12,6 +12,8 @@ import { HDRCubeTextureLoader } from 'three/examples/jsm/loaders/HDRCubeTextureL
 import { KTXLoader } from 'three/examples/jsm/loaders/KTXLoader';
 
 export class SkinDemo {
+
+  private _renderer: WebGLRenderer;
 
   private _scene: Scene;
   private _perry: Group | Mesh | null;
@@ -28,6 +30,9 @@ export class SkinDemo {
 
   constructor(renderer: WebGLRenderer, camera: PerspectiveCamera) {
     renderer.shadowMap.enabled = true ;
+    // renderer.shadowMap.type = PC;
+
+    this._renderer = renderer;
 
     this._scene = new Scene();
     this._camera = camera;
@@ -42,8 +47,8 @@ export class SkinDemo {
     this._light.castShadow = true;
     this._light.shadow.camera.near = - 10.0;
     this._light.shadow.camera.far = 10.0;
-    this._light.shadow.normalBias = 0.001;
-    this._light.shadow.bias = 0.00025;
+    this._light.shadow.normalBias = -0.003;
+    this._light.shadow.bias = -0.0035;
     this._light.shadow.mapSize.set(1024, 1024);
 
     this._light.shadow.camera.updateProjectionMatrix();
@@ -56,6 +61,7 @@ export class SkinDemo {
     this._controls = new OrbitControls(this._camera, renderer.domElement);
 
     this._material = new SkinMaterial();
+    this._material.shadowSide = DoubleSide;
     this._sssPass = new SSSPass();
 
     this._scene.add(this._light);
@@ -69,7 +75,10 @@ export class SkinDemo {
     this._guiParameters = {
       sssStrength: 1.0,
       sssWidth: 0.1,
-      zPos: 0.0
+      zPos: 0.0,
+      bias: this._light.shadow.bias,
+      normalbias: this._light.shadow.normalBias,
+      transluency: 0.5
     };
 
     this._load(renderer);
@@ -78,25 +87,23 @@ export class SkinDemo {
 
     this._buildGUI();
 
-    // window.onclick = () => {
-    //   const can = renderer.getContext().canvas;
-    //   renderer.render(this._scene, this._camera);
-    //   var dataURL = can.toDataURL("image/png");
-    //   var newTab = window.open('about:blank','image from canvas')!;
-    //   newTab.document.write("<img src='" + dataURL + "' alt='from canvas'/>");
-    // }
-
   }
 
   update() {
     if (this._perry) {
       this._perry.position.z = this._guiParameters.zPos;
     }
+
+    this._light.shadow.bias = this._guiParameters.bias;
+    this._light.shadow.normalBias = this._guiParameters.normalbias;
   }
 
   render(renderer: WebGLRenderer) {
     // Reflects GUI parameters onto the material.
+    this._material.sssWidth = this._guiParameters.sssWidth;
+    this._material.transluency = this._guiParameters.transluency;
     this._material.sssStrength = this._guiParameters.sssStrength;
+
     // @ts-ignore
     this._sssPass._blurMaterial.uniforms.uSSSWidth.value = this._guiParameters.sssWidth;
     this._sssPass.render(renderer, this._scene, this._camera);
@@ -207,9 +214,13 @@ export class SkinDemo {
   private _buildGUI(): void {
     const gui = new GUI();
 
-    gui.add(this._guiParameters, 'sssStrength', 0.0, 1.0, 0.05);
-    gui.add(this._guiParameters, 'sssWidth', 0.0, 0.25, 0.01);
-    gui.add(this._guiParameters, 'zPos', -5.0, 5, 0.1);
+    gui.add(this._guiParameters, 'sssStrength', 0.0, 2.0, 0.05);
+    gui.add(this._guiParameters, 'sssWidth', 0.0, 1.0, 0.01);
+    gui.add(this._guiParameters, 'transluency', 0.0, 1.0, 0.05);
+
+    gui.add(this._guiParameters, 'zPos', -10.0, 10, 0.1);
+    gui.add(this._guiParameters, 'bias', -1.0, 1, 0.001);
+    gui.add(this._guiParameters, 'normalbias', -1.0, 1, 0.001);
 
     gui.open();
   }
@@ -225,5 +236,9 @@ interface PerryTextures {
 interface GUIParameters {
   sssStrength: number;
   sssWidth: number;
+  transluency: number;
+
   zPos: number;
+  bias: number;
+  normalbias: number;
 }

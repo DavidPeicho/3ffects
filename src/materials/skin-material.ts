@@ -17,7 +17,11 @@ export class SkinMaterial extends ShaderMaterial {
           map: { value: null },
           diffuse: { value: new Color(0xFFFFFF) },
           envMap: { value: null },
+
+          uSSSSWidth: { value: 1.0 },
           uSSSStrength: { value: 1.0 },
+
+          uSSSSTransluency: { value: 0.5 },
 
           // @todo: better handle that.
           envMapIntensity: { value: 2.0 },
@@ -76,6 +80,22 @@ export class SkinMaterial extends ShaderMaterial {
 
   public set envMap(e: Texture) {
     this.uniforms.envMap.value = e;
+  }
+
+  public set transluency(s: number) {
+    this.uniforms.uSSSSTransluency.value = s;
+  }
+
+  public get transluency(): number {
+    return this.uniforms.uSSSSTransluency.value;
+  }
+
+  public set sssWidth(s: number) {
+    this.uniforms.uSSSSWidth.value = s;
+  }
+
+  public get sssWidth(): number {
+    return this.uniforms.uSSSSWidth.value;
   }
 
   public set sssStrength(s: number) {
