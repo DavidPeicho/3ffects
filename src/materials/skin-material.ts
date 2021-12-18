@@ -56,13 +56,8 @@ export class SkinMaterial extends ShaderMaterial {
     return this.uniforms.aoMap.value;
   }
 
-  public set aoMap(map: Texture) {
+  public set aoMap(map: Texture | null) {
     this.uniforms.aoMap.value = map;
-    // if (!map) {
-    //   delete this.defines.USE_AOMAP;
-    // } else {
-    //   this.defines.USE_AOMAP = true;
-    // }
   }
 
   public get normalMap(): Texture {
@@ -107,7 +102,7 @@ export class SkinMaterial extends ShaderMaterial {
     this.uniforms.envMapIntensity.value = e;
   }
 
-  public set transluencyMap(e: Texture) {
+  public set transluencyMap(e: Texture | null) {
     this.uniforms.uTransluencyMap.value = e;
     if (!e) {
       delete this.defines.USE_TRANSLUENCY_MAP;
@@ -116,7 +111,7 @@ export class SkinMaterial extends ShaderMaterial {
     }
   }
 
-  public get transluencyMap(): Texture {
+  public get transluencyMap(): Texture | null {
     return this.uniforms.uTransluencyMap.value;
   }
 

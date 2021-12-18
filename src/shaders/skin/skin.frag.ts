@@ -133,32 +133,19 @@ SSSSTransmittance(
 
     // 0...1
     float lightToPointDistance
-
-    /**
-        * Linear 0..1 shadow map.
-        */
-    // texture2D shadowMap,
-
-    /**
-        * Regular world to light space matrix.
-        */
-    // mat4 lightViewProjection,
-
-    /**
-        * Far plane distance used in the light projection matrix.
-        */
-    // float lightFarPlane
 ) {
     /**
         * Calculate the scale of the effect.
         */
-    float scale = max(8.25 * (1.0 - translucency) / sssWidth, 0.0001);
+    float scaleConst = 8.25;
+    float trans = clamp(translucency, 0.001, 0.099);
+    float scale = scaleConst * (1.0 - trans) / sssWidth;
 
-    /**
-        * First we shrink the position inwards the surface to avoid artifacts:
-        * (Note that this can be done once for all the lights)
-        */
-    vec4 shrinkedPos = vec4(worldPosition - 0.005 * worldNormal, 1.0);
+    // /**
+    //     * First we shrink the position inwards the surface to avoid artifacts:
+    //     * (Note that this can be done once for all the lights)
+    //     */
+    // vec4 shrinkedPos = vec4(worldPosition - 0.005 * worldNormal, 1.0);
 
     /**
         * Now we calculate the thickness from the light point of view:
@@ -348,7 +335,6 @@ void main() {
     // vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
     // gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
 
-    // modulation
     #include <aomap_fragment>
 
     vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;

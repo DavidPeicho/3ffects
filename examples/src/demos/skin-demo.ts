@@ -23,7 +23,11 @@ export class SkinDemo {
   private _material: SkinMaterial;
   private _sssPass: SSSPass;
 
+  private _textures: PerryTextures | null = null;
+
   private _guiParameters: GUIParameters;
+
+  private _clock: Clock;
 
   constructor(renderer: WebGLRenderer, camera: PerspectiveCamera) {
     renderer.shadowMap.enabled = true ;
@@ -70,13 +74,16 @@ export class SkinDemo {
 
     this._guiParameters = {
       sssStrength: 1.0,
-      sssWidth: 0.1,
+      sssWidth: 0.75,
       zPos: 0.0,
+      scale: 1.0,
+
       bias: this._light.shadow.bias,
       normalbias: this._light.shadow.normalBias,
       transluency: 0.5,
 
       ao: true,
+      transluencyMap: true,
 
       envIntensity: 1.0,
       lightIntensity: this._light.intensity
@@ -84,15 +91,30 @@ export class SkinDemo {
 
     this._load(renderer);
     this._buildGUI();
+
+    this._clock = new Clock();
   }
 
   update() {
     if (this._perry) {
+      const s = this._guiParameters.scale;
       this._perry.position.z = this._guiParameters.zPos;
+      this._perry.scale.set(s, s, s);
+    }
+
+    const delta = this._clock.getDelta();
+    const elapsed = this._clock.getElapsedTime();
+
+    if (this._textures) {
+      this._material.aoMap = this._guiParameters.ao ? this._textures.occlusion : null;
+      this._material.transluencyMap = this._guiParameters.transluencyMap ? this._textures.transmission : null;
     }
 
     this._light.shadow.bias = this._guiParameters.bias;
     this._light.shadow.normalBias = this._guiParameters.normalbias;
+    // this._light.target.position.x = Math.cos(elapsed * 0.5);
+    // this._light.target.position.y = Math.sin(elapsed * 0.5);
+    // this._light.target.position.z = Math.cos(elapsed * 0.5);
   }
 
   render(renderer: WebGLRenderer) {
@@ -146,14 +168,14 @@ export class SkinDemo {
     this._controls.reset();
     this._controls.update();
 
-    const textures = await this._loadTextures();
+    this._textures = await this._loadTextures();
     mesh.traverse((object: Object3D) => {
       if ((object as Mesh).isMesh) {
         const material = (object as Mesh).material as SkinMaterial;
-        material.map = textures.albedo;
-        material.normalMap = textures.normal;
-        material.transluencyMap = textures.transmission;
-        material.aoMap = textures.occlusion;
+        material.map = this._textures!.albedo;
+        material.normalMap = this._textures!.normal;
+        material.transluencyMap = this._textures!.transmission;
+        material.aoMap = this._textures!.occlusion;
         material.envMap = envTexture;
         material.needsUpdate = true;
       }
@@ -228,10 +250,12 @@ export class SkinDemo {
     gui.add(this._guiParameters, 'transluency', 0.0, 1.0, 0.05);
 
     gui.add(this._guiParameters, 'zPos', -10.0, 10, 0.1);
+    gui.add(this._guiParameters, 'scale', 1.0, 20, 0.5);
     gui.add(this._guiParameters, 'bias', -0.2, 0.2, 0.001);
     gui.add(this._guiParameters, 'normalbias', -0.2, 0.2, 0.001);
 
     gui.add(this._guiParameters, 'ao');
+    gui.add(this._guiParameters, 'transluencyMap');
 
     gui.add(this._guiParameters, 'envIntensity', 0.0, 2.0, 0.25);
     gui.add(this._guiParameters, 'lightIntensity', 0.0, 5.0, 0.25);
@@ -254,8 +278,11 @@ interface GUIParameters {
   transluency: number;
 
   ao: boolean;
+  transluencyMap: boolean;
 
   zPos: number;
+  scale: number;
+
   bias: number;
   normalbias: number;
 

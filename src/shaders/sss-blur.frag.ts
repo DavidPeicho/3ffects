@@ -138,9 +138,10 @@ void main()
   }
 
   // Fetch color and linear depth for current pixel:
-  // @todo: linearize
   // float depthM = getSSSDepth(vUv);
+  float depthRange = uCameraFar - uCameraNear;
   float depthM = getZ(vUv);
+  // float depthM = getLinearDepth(texture(uDepthTexture, vUv).r) / depthRange;
 
   vec4 kernel[11];
   kernel[0] = vec4(0.560479, 0.669086, 0.784728, 0.0);
@@ -162,7 +163,9 @@ void main()
   float radiansFovY = 0.78;
   float distanceToProjectionWindow = 1.0 / tan(0.5 * radiansFovY);
   float sssScale = distanceToProjectionWindow / float(SSSS_N_SAMPLES) * 0.5;
+
   float scale = sssScale / depthM;
+
   // Calculate the final step to fetch the surrounding pixels:
   vec2 finalStep = uSSSWidth * scale * uBlurDirection;
   // finalStep *= SSSS_STREGTH_SOURCE; // Modulate it using the alpha channel.
@@ -172,7 +175,6 @@ void main()
   vec4 colorBlurred = colorM;
   colorBlurred.rgb *= kernel[0].rgb;
 
-  #define SSSS_N_SAMPLES 11
   #define SSSS_FOLLOW_SURFACE
   for (int i = 1; i < SSSS_N_SAMPLES; i++)
   {
@@ -182,10 +184,10 @@ void main()
 
     #ifdef SSSS_FOLLOW_SURFACE
       // If the difference in depth is huge, we lerp color back to "colorM":
-      // float depth = getSSSDepth(offset);
       float depth = getZ(offset);
       float s = clamp(
-        12000.0 / 400000.0 * distanceToProjectionWindow * uSSSWidth * abs(depthM - depth),
+        // 12000.0 / 400000.0 * distanceToProjectionWindow * uSSSWidth * abs(depthM - depth),
+        distanceToProjectionWindow * uSSSWidth * abs(depthM - depth),
         0.0,
         1.0
       );
@@ -196,8 +198,8 @@ void main()
     colorBlurred.rgb += kernel[i].rgb * color.rgb;
   }
 
-  fragColor = vec4(colorM.rgb, 1.0);
   fragColor = vec4(colorBlurred.rgb, 1.0);
+  // fragColor = vec4(vec3(depthM), 1.0);
 }
 
 `;
