@@ -80,10 +80,10 @@ export class SkinDemo {
 
       bias: this._light.shadow.bias,
       normalbias: this._light.shadow.normalBias,
-      transluency: 0.25,
+      transluency: 0.5,
+      thickness: 0.15,
 
       ao: true,
-      transluencyMap: false,
 
       envIntensity: 1.0,
       lightIntensity: this._light.intensity
@@ -108,7 +108,6 @@ export class SkinDemo {
 
     if (this._textures) {
       this._material.aoMap = this._guiParameters.ao ? this._textures.occlusion : null;
-      this._material.transluencyMap = this._guiParameters.transluencyMap ? this._textures.transmission : null;
     }
 
     this._light.shadow.bias = this._guiParameters.bias;
@@ -126,6 +125,7 @@ export class SkinDemo {
     // Reflects GUI parameters onto the material.
     this._material.sssWidth = this._guiParameters.sssWidth;
     this._material.transluency = this._guiParameters.transluency;
+    this._material.thickness = this._guiParameters.thickness;
     this._material.sssStrength = this._guiParameters.sssStrength;
     this._material.envMapIntensity = this._guiParameters.envIntensity;
 
@@ -179,7 +179,6 @@ export class SkinDemo {
         const material = (object as Mesh).material as SkinMaterial;
         material.map = this._textures!.albedo;
         material.normalMap = this._textures!.normal;
-        material.transluencyMap = this._textures!.transmission;
         material.aoMap = this._textures!.occlusion;
         material.envMap = envTexture;
         material.needsUpdate = true;
@@ -253,6 +252,7 @@ export class SkinDemo {
     gui.add(this._guiParameters, 'sssStrength', 0.0, 2.0, 0.05);
     gui.add(this._guiParameters, 'sssWidth', 0.0, 5.0, 0.01);
     gui.add(this._guiParameters, 'transluency', 0.0, 1.0, 0.05);
+    gui.add(this._guiParameters, 'thickness', 0.0, 1.0, 0.05);
 
     gui.add(this._guiParameters, 'zPos', -10.0, 10, 0.1);
     gui.add(this._guiParameters, 'scale', 1.0, 20, 0.5);
@@ -260,7 +260,6 @@ export class SkinDemo {
     gui.add(this._guiParameters, 'normalbias', -0.2, 0.2, 0.001);
 
     gui.add(this._guiParameters, 'ao');
-    gui.add(this._guiParameters, 'transluencyMap');
 
     gui.add(this._guiParameters, 'envIntensity', 0.0, 2.0, 0.25);
     gui.add(this._guiParameters, 'lightIntensity', 0.0, 5.0, 0.25);
@@ -281,9 +280,9 @@ interface GUIParameters {
   sssStrength: number;
   sssWidth: number;
   transluency: number;
+  thickness: number;
 
   ao: boolean;
-  transluencyMap: boolean;
 
   zPos: number;
   scale: number;

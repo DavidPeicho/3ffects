@@ -25,8 +25,9 @@ export class SkinMaterial extends ShaderMaterial {
           uSSSSWidth: { value: 1.0 },
           uSSSStrength: { value: 1.0 },
 
-          uSSSSTransluency: { value: 0.5 },
-          uTransluencyMap: { value: null },
+          uTransluency: { value: 0.5 },
+          uThickness: { value: 0.15 },
+          uThicknessMap: { value: null },
 
           envMapIntensity: { value: 2.0 },
           metalness: { value: 0.0 },
@@ -102,8 +103,8 @@ export class SkinMaterial extends ShaderMaterial {
     this.uniforms.envMapIntensity.value = e;
   }
 
-  public set transluencyMap(e: Texture | null) {
-    this.uniforms.uTransluencyMap.value = e;
+  public set thicknessMap(e: Texture | null) {
+    this.uniforms.uThicknessMap.value = e;
     if (!e) {
       delete this.defines.USE_TRANSLUENCY_MAP;
     } else {
@@ -111,16 +112,24 @@ export class SkinMaterial extends ShaderMaterial {
     }
   }
 
-  public get transluencyMap(): Texture | null {
-    return this.uniforms.uTransluencyMap.value;
+  public get thicknessMap(): Texture | null {
+    return this.uniforms.uThicknessMap.value;
+  }
+
+  public set thickness(s: number) {
+    this.uniforms.uThickness.value = s;
+  }
+
+  public get thickness(): number {
+    return this.uniforms.uThickness.value;
   }
 
   public set transluency(s: number) {
-    this.uniforms.uSSSSTransluency.value = s;
+    this.uniforms.uTransluency.value = s;
   }
 
   public get transluency(): number {
-    return this.uniforms.uSSSSTransluency.value;
+    return this.uniforms.uTransluency.value;
   }
 
   public set sssWidth(s: number) {

@@ -17,7 +17,8 @@ uniform float opacity;
 
 uniform float uSSSStrength;
 uniform float uSSSSWidth;
-uniform float uSSSSTransluency;
+uniform float uTransluency;
+uniform float uThickness;
 
 #ifdef USE_TRANSLUENCY_MAP
     uniform sampler2D uTransluencyMap;
@@ -105,13 +106,7 @@ SSSSTransmittance(
         * This parameter allows to control the transmittance effect. Its range
         * should be 0..1. Higher values translate to a stronger effect.
         */
-    float translucency,
-
-    /**
-        * This parameter should be the same as the 'SSSSBlurPS' one. See below
-        * for more details.
-        */
-    float sssWidth,
+    float thickness,
 
     /**
         * Position in world space.
@@ -138,17 +133,15 @@ SSSSTransmittance(
         * Calculate the scale of the effect.
         */
     // Why 500 though.
-    float scale = saturate(1.0 - translucency) * 500.0;
-
     float thicknessDist = abs(shadowDistance - lightToPointDistance);
-    float thickness = scale * thicknessDist;
+    float scale = 500.0 * thicknessDist * saturate(thickness);
 
     /**
         * Armed with the thickness, we can now calculate the color by means of the
         * precalculated transmittance profile.
         * (It can be precomputed into a texture, for maximum performance):
         */
-    float dd = -thickness * thickness;
+    float dd = -scale * scale;
     vec3 profile = vec3(0.233, 0.455, 0.649) * exp(dd / 0.0064) +
                         vec3(0.1,   0.336, 0.344) * exp(dd / 0.0484) +
                         vec3(0.118, 0.198, 0.0)   * exp(dd / 0.187)  +
@@ -295,16 +288,10 @@ void main() {
                 );
                 float fragDepthLightSpace = vDirectionalShadowCoord[0].z / vDirectionalShadowCoord[0].w;
 
-                float transluency = uSSSSTransluency;
-                #ifdef USE_TRANSLUENCY_MAP
-                    transluency *= texture2D(uTransluencyMap, vUv).r;
-                #endif // USE_TRANSLUENCY_MAP
-
                 vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
                 vec3 lightWorld = inverseTransformDirection(directionalLights[ 0 ].direction, viewMatrix);
-                reflectedLight.directDiffuse += diff * SSSSTransmittance(
-                    transluency,
-                    uSSSSWidth,
+                reflectedLight.directDiffuse += diff * uTransluency * SSSSTransmittance(
+                    uThickness,
                     vWorldPosition,
                     worldNormal,
                     lightWorld,
