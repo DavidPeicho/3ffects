@@ -137,33 +137,18 @@ SSSSTransmittance(
     /**
         * Calculate the scale of the effect.
         */
-    float scaleConst = 8.25;
-    float trans = clamp(translucency, 0.001, 0.099);
-    float scale = scaleConst * (1.0 - trans) / sssWidth;
+    // Why 500 though.
+    float scale = saturate(1.0 - translucency) * 500.0;
 
-    // /**
-    //     * First we shrink the position inwards the surface to avoid artifacts:
-    //     * (Note that this can be done once for all the lights)
-    //     */
-    // vec4 shrinkedPos = vec4(worldPosition - 0.005 * worldNormal, 1.0);
-
-    /**
-        * Now we calculate the thickness from the light point of view:
-        */
-    // float4 shadowPosition = SSSSMul(shrinkedPos, lightViewProjection);
-    // float d1 = SSSSSample(shadowMap, shadowPosition.xy / shadowPosition.w).r; // 'd1' has a range of 0..1
-    // float d2 = shadowPosition.z; // 'd2' has a range of 0..'lightFarPlane'
-    // d1 *= lightFarPlane; // So we scale 'd1' accordingly:
-    // float d = scale * abs(d1 - d2);
-
-    float d = scale * abs(shadowDistance - lightToPointDistance);
+    float thicknessDist = abs(shadowDistance - lightToPointDistance);
+    float thickness = scale * thicknessDist;
 
     /**
         * Armed with the thickness, we can now calculate the color by means of the
         * precalculated transmittance profile.
         * (It can be precomputed into a texture, for maximum performance):
         */
-    float dd = -d * d;
+    float dd = -thickness * thickness;
     vec3 profile = vec3(0.233, 0.455, 0.649) * exp(dd / 0.0064) +
                         vec3(0.1,   0.336, 0.344) * exp(dd / 0.0484) +
                         vec3(0.118, 0.198, 0.0)   * exp(dd / 0.187)  +
@@ -308,6 +293,7 @@ void main() {
                     directionalLightShadow.shadowRadius,
                     vDirectionalShadowCoord[0]
                 );
+                float fragDepthLightSpace = vDirectionalShadowCoord[0].z / vDirectionalShadowCoord[0].w;
 
                 float transluency = uSSSSTransluency;
                 #ifdef USE_TRANSLUENCY_MAP
@@ -323,7 +309,7 @@ void main() {
                     worldNormal,
                     lightWorld,
                     depthShadow,
-                    vDirectionalShadowCoord[0].z / vDirectionalShadowCoord[0].w
+                    fragDepthLightSpace
                 );
 
             #endif // NUM_DIR_LIGHT_SHADOWS > 0

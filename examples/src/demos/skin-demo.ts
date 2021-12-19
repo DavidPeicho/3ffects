@@ -74,16 +74,16 @@ export class SkinDemo {
 
     this._guiParameters = {
       sssStrength: 1.0,
-      sssWidth: 0.75,
+      sssWidth: 0.7,
       zPos: 0.0,
       scale: 1.0,
 
       bias: this._light.shadow.bias,
       normalbias: this._light.shadow.normalBias,
-      transluency: 0.5,
+      transluency: 0.25,
 
       ao: true,
-      transluencyMap: true,
+      transluencyMap: false,
 
       envIntensity: 1.0,
       lightIntensity: this._light.intensity
@@ -96,8 +96,9 @@ export class SkinDemo {
   }
 
   update() {
+    const s = this._guiParameters.scale;
+
     if (this._perry) {
-      const s = this._guiParameters.scale;
       this._perry.position.z = this._guiParameters.zPos;
       this._perry.scale.set(s, s, s);
     }
@@ -111,9 +112,13 @@ export class SkinDemo {
     }
 
     this._light.shadow.bias = this._guiParameters.bias;
+    this._light.shadow.camera.near = -10.0 * s;
+    this._light.shadow.camera.far = 10.0 * s;
     this._light.shadow.normalBias = this._guiParameters.normalbias;
+    this._light.shadow.camera.updateProjectionMatrix();
+
     // this._light.target.position.x = Math.cos(elapsed * 0.5);
-    // this._light.target.position.y = Math.sin(elapsed * 0.5);
+    // this._light.target.position.y = - Math.sin(elapsed * 0.5);
     // this._light.target.position.z = Math.cos(elapsed * 0.5);
   }
 
@@ -246,7 +251,7 @@ export class SkinDemo {
     const gui = new GUI();
 
     gui.add(this._guiParameters, 'sssStrength', 0.0, 2.0, 0.05);
-    gui.add(this._guiParameters, 'sssWidth', 0.0, 1.0, 0.01);
+    gui.add(this._guiParameters, 'sssWidth', 0.0, 5.0, 0.01);
     gui.add(this._guiParameters, 'transluency', 0.0, 1.0, 0.05);
 
     gui.add(this._guiParameters, 'zPos', -10.0, 10, 0.1);
