@@ -89,45 +89,6 @@ void main() {
     #include <lights_fragment_maps>
     #include <lights_fragment_end>
 
-    // #ifdef USE_SHADOWMAP
-
-    //     #if ( NUM_DIR_LIGHTS > 0 )
-
-    //         #if NUM_DIR_LIGHT_SHADOWS > 0
-
-    //             directionalLight = directionalLights[ 0 ];
-    //             directionalLightShadow = directionalLightShadows[0];
-	//             vec3 diff = directionalLight.color * BRDF_Lambert( material.diffuseColor );
-
-    //             float depthShadow = getShadowDepth(
-    //                 directionalShadowMap[0],
-    //                 directionalLightShadow.shadowMapSize,
-    //                 directionalLightShadow.shadowBias,
-    //                 directionalLightShadow.shadowRadius,
-    //                 vDirectionalShadowCoord[0]
-    //             );
-    //             float fragDepthLightSpace = vDirectionalShadowCoord[0].z / vDirectionalShadowCoord[0].w;
-
-    //             vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
-    //             vec3 lightWorld = inverseTransformDirection(directionalLights[ 0 ].direction, viewMatrix);
-    //             reflectedLight.directDiffuse += diff * uTransluency * SSSSTransmittance(
-    //                 uThickness,
-    //                 vWorldPosition,
-    //                 worldNormal,
-    //                 lightWorld,
-    //                 depthShadow,
-    //                 fragDepthLightSpace
-    //             );
-
-    //         #endif // NUM_DIR_LIGHT_SHADOWS > 0
-
-    //     #endif // NUM_DIR_LIGHTS > 0
-
-    // #endif // USE_SHADOWMAP
-
-    // vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
-    // gDiffuse = vec4(totalDiffuse.rgb, uSSSStrength);
-
     #include <aomap_fragment>
 
     vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
