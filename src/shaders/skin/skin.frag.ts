@@ -2,8 +2,7 @@ export default `
 precision highp float;
 precision highp sampler2D;
 
-layout(location = 0) out vec4 gDiffuse;
-layout(location = 1) out vec4 gBuffer;
+out vec4 color;
 
 #define STANDARD
 
@@ -63,8 +62,41 @@ varying vec3 vViewPosition;
 #include <metalnessmap_pars_fragment>
 #include <logdepthbuf_pars_fragment>
 #include <clipping_planes_pars_fragment>
-
 #include <transluency_pars_begin>
+
+struct MaterialData
+{
+    PhysicalMaterial material;
+    TransmittanceData transmittance;
+};
+
+#define MATERIAL_DATA MaterialData
+
+void
+RE_Direct_Transluency(
+    const in IncidentLight directLight,
+    const in Shadow shadow,
+    const in GeometricContext geometry,
+    const in MaterialData material,
+    inout ReflectedLight reflectedLight
+)
+{
+    float fragDepthLightSpace = shadow.coords.z / shadow.coords.w;
+    reflectedLight.directDiffuse += uTransluency * SSSSTransmittance(
+        material.transmittance.thickness,
+        material.transmittance.transluency,
+        geometry.normal,
+        directLight.direction,
+        shadow.distance,
+        fragDepthLightSpace
+    );
+}
+
+#ifndef RE_Direct_Extended
+    #define RE_Direct_Extended RE_Direct_Transluency
+#endif // !RE_Direct_Extended
+
+#include <lighting_fragment_pars>
 
 void main() {
     #include <clipping_planes_fragment>
@@ -85,7 +117,25 @@ void main() {
     #include <emissivemap_fragment>
     // accumulation
     #include <lights_physical_fragment>
-    #include <lights_fragment_extended_diffusion_begin>
+
+    GeometricContext geometry;
+    geometry.position = - vViewPosition;
+    geometry.normal = normal;
+    geometry.viewDir = ( isOrthographic ) ? vec3( 0, 0, 1 ) : normalize( vViewPosition );
+
+    #ifdef USE_CLEARCOAT
+
+        geometry.clearcoatNormal = clearcoatNormal;
+
+    #endif
+
+    MaterialData materialData;
+    materialData.material = material;
+    initializeTransmittanceMaterialData(materialData.transmittance);
+
+    computeReflectedLight(reflectedLight, geometry, materialData);
+
+    #include <indirect_lighting_fragment>
     #include <lights_fragment_maps>
     #include <lights_fragment_end>
 
@@ -94,8 +144,10 @@ void main() {
     vec3 totalDiffuse = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
     vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
 
-    gDiffuse = vec4(totalDiffuse, uSSSStrength);
-    gBuffer = vec4(totalSpecular, 1.0);
+    // gDiffuse = vec4(totalDiffuse, uSSSStrength);
+    // gBuffer = vec4(totalSpecular, 1.0);
+
+    color = vec4(totalDiffuse, uSSSStrength);
 
     // #include <tonemapping_fragment>
     // #include <encodings_fragment>

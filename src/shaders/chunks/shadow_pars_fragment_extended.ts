@@ -124,7 +124,7 @@ ShaderChunk.shadowmap_pars_fragment_extended = /* glsl */`
   )
   {
     shadow.coords = processShadowCoords(shadowCoord, shadowBias);
-    shadowTmp.distance = all(bvec2(isLightVisible, receiveShadow)) ?
+    shadow.distance = all(bvec2(isLightVisible, receiveShadow)) ?
         getShadowDistanceNormalized(
             shadowMap,
             shadowMapSize,

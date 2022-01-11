@@ -1,6 +1,8 @@
 import { Color, DoubleSide, GLSL3, ObjectSpaceNormalMap, ShaderMaterial, TangentSpaceNormalMap, Texture, UniformsLib, UniformsUtils } from 'three';
 
-import '../shaders/chunks/lights_fragment_diffusion_begin';
+import '../shaders/chunks/indirect_lighting_fragment.js';
+import '../shaders/chunks/transluency_pars_fragment.js';
+import '../shaders/chunks/lighting_fragment_pars.js';
 
 import fragmentShader from '../shaders/skin/skin.frag';
 import vertexShader from '../shaders/skin/skin.vert';

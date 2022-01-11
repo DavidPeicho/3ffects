@@ -13,6 +13,19 @@ uniform float uThickness;
     uniform sampler2D uTransluencyMap;
 #endif // USE_TRANSLUENCY_MAP
 
+struct TransmittanceData
+{
+    float transluency;
+    float thickness;
+};
+
+void
+initializeTransmittanceMaterialData(inout TransmittanceData data)
+{
+    data.transluency = uTransluency;
+    data.thickness = uThickness;
+}
+
 vec3
 SSSSTransmittance(
     /**
@@ -22,11 +35,6 @@ SSSSTransmittance(
     float thickness,
 
     float transluency,
-
-    /**
-        * Position in world space.
-        */
-    vec3 worldPosition,
 
     /**
         * Normal in world space.
@@ -71,17 +79,4 @@ SSSSTransmittance(
         */
     return transluency * profile * saturate(0.3 + dot(light, -worldNormal));
 }
-
-void
-RE_Direct_Transluency(
-    const in IncidentLight directLight,
-    const in Shadow shadow,
-    const in GeometricContext geometry,
-    const in PhysicalMaterial material,
-    inout ReflectedLight reflectedLight
-)
-
-#ifndef RE_Direct_Extended
-    #define RE_Direct_Extended RE_Direct_Transluency
-#endif // !RE_Direct_Extended
 `;
